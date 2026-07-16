@@ -14,11 +14,11 @@ import { loadSettings, saveSettings, loadSavedGame, saveGameState } from "./stor
 // 07-16 再調弱 AI(使用者回饋:太黏拉不開):aiSpd 全檔下修——入門以下用走的就能拉開,
 // AI 的反制是換遠程武器;aiCd 低檔位也放慢(出手更稀)。
 export const DIFFICULTY_PRESETS = {
-  kids: { maxFwd: 3.8, boost: 2.8, turnRate: 2.5, aiSkill: 0.25, aiCd: 2.3, aiDmg: 0.45, aiSpd: 0.5, assist: 0.5 },
-  child: { maxFwd: 4.2, boost: 3.2, turnRate: 2.45, aiSkill: 0.4, aiCd: 1.9, aiDmg: 0.65, aiSpd: 0.58, assist: 0.3 },
-  easy: { maxFwd: 4.8, boost: 3.8, turnRate: 2.4, aiSkill: 0.55, aiCd: 1.55, aiDmg: 0.8, aiSpd: 0.68, assist: 0.15 },
-  normal: { maxFwd: 5.4, boost: 4.4, turnRate: 2.35, aiSkill: 0.68, aiCd: 1.2, aiDmg: 0.95, aiSpd: 0.82, assist: 0 },
-  hard: { maxFwd: 6.0, boost: 4.8, turnRate: 2.3, aiSkill: 0.82, aiCd: 0.95, aiDmg: 1.1, aiSpd: 0.95, assist: 0 },
+  kids: { maxFwd: 3.8, boost: 2.8, turnRate: 2.5, aiSkill: 0.22, aiCd: 2.6, aiDmg: 0.4, aiSpd: 0.42, assist: 0.5 },
+  child: { maxFwd: 4.2, boost: 3.2, turnRate: 2.45, aiSkill: 0.35, aiCd: 2.1, aiDmg: 0.55, aiSpd: 0.5, assist: 0.3 },
+  easy: { maxFwd: 4.8, boost: 3.8, turnRate: 2.4, aiSkill: 0.48, aiCd: 1.75, aiDmg: 0.7, aiSpd: 0.6, assist: 0.15 },
+  normal: { maxFwd: 5.4, boost: 4.4, turnRate: 2.35, aiSkill: 0.58, aiCd: 1.5, aiDmg: 0.8, aiSpd: 0.7, assist: 0 },
+  hard: { maxFwd: 6.0, boost: 4.8, turnRate: 2.3, aiSkill: 0.72, aiCd: 1.15, aiDmg: 0.95, aiSpd: 0.82, assist: 0 },
 };
 
 export const DIFFICULTY_LABELS = {
@@ -999,6 +999,36 @@ export class WarriorGame {
 
   // ---------- 突進技:跳殺(躍撲落地斬)/飛殺(爆發突進斬) ----------
   // 快速鍵直發(07-16 使用者點名:E=跳殺、R=飛殺,不用先衝刺);距離不對給提示
+  // W/↑=飛身翻越對手頭上,落到另一側(被壓牆角的脫身鍵;純走位不帶攻擊)
+  _tryVault() {
+    if (this.overlay.visible || this.phase !== "battle" || this.endT >= 0) return;
+    const r = this.my;
+    if (r.koT >= 0 || r.leap || r.dash || r.blocking || r.stunT < this._stunDur()) return;
+    if ((r.vaultCd || 0) > 0) {
+      this.message = `翻越冷卻中…(${r.vaultCd.toFixed(1)}s)`;
+      this.pushHud();
+      return;
+    }
+    const foe = this.foe;
+    const dist = Math.abs(foe.pos.x - r.pos.x);
+    if (dist > 7) {
+      this.message = "離對手太遠——翻越是貼身換邊用的!";
+      this.pushHud();
+      return;
+    }
+    const dirSign = foe.pos.x >= r.pos.x ? 1 : -1; // 越過對手,落在他背後
+    const landX = clamp(foe.pos.x + dirSign * 2.6, -ARENA_HALF, ARENA_HALF);
+    const to = new THREE.Vector3(landX, 0, 0);
+    r.leap = { t: 0, dur: 0.55, from: r.pos.clone(), to, h: 2.8, vault: true };
+    r.heading = dirSign > 0 ? Math.PI / 2 : -Math.PI / 2; // 空中面朝行進方向
+    r.chargeT = -1;
+    r.sprintT = 0;
+    r.vaultCd = 1.6;
+    this.emitEvent("vault", {});
+    this.message = "飛身翻越——跳過對手頭上!";
+    this.pushHud();
+  }
+
   _tryTech(kind) {
     if (this.overlay.visible || this.phase !== "battle" || this.endT >= 0) return;
     const r = this.my;
@@ -1059,6 +1089,16 @@ export class WarriorGame {
   }
 
   _landLeap(fighter) {
+    if (fighter.leap && fighter.leap.vault) {
+      // 翻越換邊:純走位不出招,落地小硬直
+      fighter.leap = null;
+      fighter.airY = 0;
+      fighter.speed = 0;
+      fighter.cd = Math.max(fighter.cd, 0.25);
+      this.message = "翻越成功——換邊重新進攻!";
+      this.pushHud();
+      return;
+    }
     fighter.leap = null;
     fighter.airY = 0;
     fighter.speed *= 0.5;
@@ -1414,8 +1454,13 @@ export class WarriorGame {
     target.hitT = 0;
     if (stun) target.stunT = 0;
     target.chargeT = -1; // 被打中斷蓄力(反制大招的方法)
-    // 撞退一小步(打擊感,幅度小,兒童安全)
-    target.speed *= 0.4;
+    // 受擊擊退(07-17 街霸式):被打中往後彈開一段,誰都黏不住誰
+    target.speed = -6.5; // 面向恆對著攻擊方,負速度=直直往後彈
+    if (target === this.foe && target.brain) {
+      // AI 挨打要主動退開幾步——把逃跑窗還給玩家(牆角壓制救星)
+      target.brain.retreatT = Math.max(target.brain.retreatT || 0, 1.2);
+      target.brain.orbitDir = Math.random() < 0.5 ? -1 : 1;
+    }
     this.hitFlash.position.copy(target.pos).setY(1.5);
     this.hitFlash.material.color.setHex(stun ? 0x6dff7a : 0xffe14d);
     this.hitFlashT = 0;
@@ -1752,6 +1797,7 @@ export class WarriorGame {
       f.cd = Math.max(0, f.cd - sdt);
       if (f.koT >= 0) f.koT += delta;
       f.techCd = Math.max(0, f.techCd - sdt);
+      f.vaultCd = Math.max(0, (f.vaultCd || 0) - sdt);
       if (f.chargeT >= 0 && this.phase === "battle" && !paused) {
         f.chargeT = Math.min(CHARGE_FULL, f.chargeT + sdt);
       }
@@ -1811,8 +1857,7 @@ export class WarriorGame {
     f.sprintT = sprinting && Math.abs(f.speed) > preset.maxFwd * 0.8 ? f.sprintT + dt : 0;
     let target = 0;
     if (!stunned) {
-      if (this.input.isDown("up")) target = preset.maxFwd + (this.input.isDown("sprint") ? preset.boost : 0); // W=前進(同義鍵)
-      else if (this.input.isDown("down")) target = f.speed > 0.4 ? 0 : -MAX_BACK; // S=後退(同義鍵)
+      if (this.input.isDown("down")) target = f.speed > 0.4 ? 0 : -MAX_BACK; // S=後退(同義鍵);W 讓給翻越
       // 2.5D:←→(A/D)=朝對手/背對對手移動;面向由主迴圈恆鎖對手,不用轉向
       const facing = this.foe.pos.x >= f.pos.x ? 1 : -1; // +1=對手在右
       const dirX = (this.input.isDown("right") ? 1 : 0) - (this.input.isDown("left") ? 1 : 0);
@@ -1956,7 +2001,7 @@ export class WarriorGame {
 
     // 喘息腦(入門以下,07-16 使用者回饋 AI 太黏):每 4~8 秒停下喘 1.4 秒
     // =孩子的逃跑窗/反打窗;職業與標準沒有喘息
-    if (preset.aiSkill < 0.6) {
+    if (preset.aiSkill < 0.7) { // 07-17 調弱:標準也給喘息窗,只有職業不喘
       brain.breatherT = (brain.breatherT ?? 4) - dt;
       if (brain.breatherT <= 0) {
         brain.restT = 1.4;
@@ -2066,6 +2111,7 @@ export class WarriorGame {
     if (this.overlay.visible) return;
     if (this.input.consumePress("shoot")) this._shootPress();
     if (this.input.consumePress("charskill")) this._tryCharSkill(); // G=角色技能
+    if (this.input.consumePress("up")) this._tryVault(); // W/↑=翻越換邊
     if (this.input.consumePress("leap")) this._tryTech("leap"); // E=跳殺
     if (this.input.consumePress("dashkill")) this._tryTech("dash"); // R=飛殺
     if (this.input.consumePress("switch")) this.cyclePlayerWeapon();
