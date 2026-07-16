@@ -1431,7 +1431,7 @@ export class WarriorGame {
         return;
       }
       // 一般格擋:箭/鋼球=無傷;近戰/大招波動=傷害×0.3(輕傷不後仰、不斷蓄力)
-      const reduced = kind === "proj" ? 0 : Math.round(dmg * 0.3);
+      const reduced = kind === "proj" ? 0 : Math.round(dmg * 0.45); // 07-17:格擋只擋六成(AI 太會擋回饋)
       this.emitEvent("block", { who: target === this.my ? "me" : "ai" });
       if (reduced <= 0) {
         this.message = target === this.my ? "舉盾格擋——擋下來了!" : "被對手舉盾擋下——繞到側面打!";
@@ -1990,10 +1990,11 @@ export class WarriorGame {
     } else if (!stunned && f.chargeT < 0) {
       const threat = (this.my.chargeT >= CHARGE_MIN * 0.7 && dist < 12) || this.my.dash || this.my.leap;
       const skirmish = dist < 3.5 && f.cd > 0.35;
-      if ((threat && Math.random() < preset.aiSkill * dt * 7) || (skirmish && Math.random() < preset.aiSkill * dt * 2.5)) {
+      // 07-17 再調弱:AI 太會格擋——機率砍半以上、舉盾時間縮短(孩子的刀要打得進去)
+      if ((threat && Math.random() < preset.aiSkill * dt * 2) || (skirmish && Math.random() < preset.aiSkill * dt * 0.5)) {
         f.blocking = true;
         f.blockT = 0;
-        brain.blockHold = 0.6 + Math.random() * 0.8;
+        brain.blockHold = 0.35 + Math.random() * 0.35;
       }
     }
     if (f.blocking) desiredSpeed *= 0.35;
