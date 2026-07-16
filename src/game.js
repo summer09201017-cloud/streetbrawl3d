@@ -66,7 +66,7 @@ export const WEAPONS = {
   spear: { label: "長矛", short: "長矛", reach: 2.4, dmg: 12, cd: 1.1, arc: 0.65, chargeBonus: 0.5, swing: "lunge", hint: "長距直刺,攻守兼備" },
   greatblade: { label: "青龍大刀", short: "大刀", reach: 2.0, dmg: 15, cd: 1.5, arc: 1.6, swing: "spin", hint: "360° 迴旋橫掃,重擊" },
   sword: { label: "騎士劍", short: "劍", reach: 1.6, dmg: 10, cd: 0.8, arc: 1.25, swing: "chop", hint: "180° 直劈,均衡好上手" },
-  saber: { label: "彎刀", short: "彎刀", reach: 1.5, dmg: 8, cd: 0.55, arc: 1.35, swing: "chop", hint: "180° 快劈連擊" },
+  saber: { label: "彎刀", short: "彎刀", reach: 1.5, dmg: 8, cd: 0.55, arc: 1.6, swing: "spin", hint: "360° 快速迴旋連擊" }, // 07-17:改水平360°(跟大刀同款掃法,快版)
   rapier: { label: "西洋劍", short: "西洋劍", reach: 1.8, dmg: 6, cd: 0.4, arc: 0.7, swing: "lunge", hint: "最快的點刺" },
   bow: { label: "弓箭", short: "弓箭", ranged: true, dmg: 9, cd: 1.5, projSpeed: 26, maxRange: 30, hint: "遠距狙擊(鈍頭箭)" },
   greenballs: { label: "雙綠鋼球", short: "鋼球", ranged: true, dmg: 6, cd: 2.4, projSpeed: 16, maxRange: 20, stun: 1.1, volley: 2, hint: "兩顆連投,命中暈眩" },
