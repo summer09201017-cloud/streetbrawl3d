@@ -1418,7 +1418,7 @@ export class WarriorGame {
     };
     if (on) {
       if (this._tsGray) return; // 已抽色(雙方連放保險)
-      this._tsGray = { mats: [], inst: [], bg: null, fog: null };
+      this._tsGray = { mats: [], inst: [], vtx: [], bg: null, fog: null };
       const seen = new Set();
       this.scene.traverse((o) => {
         let keep = false;
@@ -1432,6 +1432,16 @@ export class WarriorGame {
             a[i] = v; a[i + 1] = v; a[i + 2] = v;
           }
           o.instanceColor.needsUpdate = true;
+        }
+        if (o.geometry?.attributes?.color) { // 地形帶/彩帶等 vertex colors 也要抽
+          this._tsGray.vtx.push({ geo: o.geometry, orig: o.geometry.attributes.color.array.slice() });
+          const c = o.geometry.attributes.color.array;
+          const n = o.geometry.attributes.color.itemSize; // 3 或 4(RGBA 只動前三)
+          for (let i = 0; i < c.length; i += n) {
+            const v = c[i] * 0.299 + c[i + 1] * 0.587 + c[i + 2] * 0.114;
+            c[i] = v; c[i + 1] = v; c[i + 2] = v;
+          }
+          o.geometry.attributes.color.needsUpdate = true;
         }
         for (const m of (Array.isArray(o.material) ? o.material : [o.material])) {
           if (seen.has(m)) continue;
@@ -1459,6 +1469,10 @@ export class WarriorGame {
       for (const it of this._tsGray.inst) {
         it.mesh.instanceColor.array.set(it.orig);
         it.mesh.instanceColor.needsUpdate = true;
+      }
+      for (const it of this._tsGray.vtx) {
+        it.geo.attributes.color.array.set(it.orig);
+        it.geo.attributes.color.needsUpdate = true;
       }
       if (this._tsGray.bg !== null && this.scene.background?.isColor) this.scene.background.setHex(this._tsGray.bg);
       if (this._tsGray.fog !== null && this.scene.fog) this.scene.fog.color.setHex(this._tsGray.fog);
