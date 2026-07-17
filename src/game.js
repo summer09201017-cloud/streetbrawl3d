@@ -701,19 +701,23 @@ export class WarriorGame {
     rim.position.set(-25, 30, 25);
     this.scene.add(rim);
 
+    // 場景群組(07-18 使用者拍板:場景可選——室外草地 vs 武鬥場室內)
+    const out = new THREE.Group();
+    this.outdoorGroup = out;
+    this.scene.add(out);
     const grass = new THREE.Mesh(new THREE.PlaneGeometry(240, 240), new THREE.MeshStandardMaterial({ color: 0x5c8a48, roughness: 1 }));
     grass.rotation.x = -Math.PI / 2;
     grass.position.y = -0.02;
-    this.scene.add(grass);
+    out.add(grass);
     // 開放式比武沙場(中間不設任何阻擋)
     const sand = new THREE.Mesh(new THREE.PlaneGeometry(ARENA_HALF * 2 + 6, ARENA_HALF * 2 + 6), new THREE.MeshStandardMaterial({ color: 0xd8c49c, roughness: 1 }));
     sand.rotation.x = -Math.PI / 2;
-    this.scene.add(sand);
+    this.outdoorGroup.add(sand);
     // 中央圓台紋(純裝飾,不擋路)
     const ring = new THREE.Mesh(new THREE.RingGeometry(3.6, 3.9, 48), new THREE.MeshStandardMaterial({ color: 0xb89a6a, roughness: 1 }));
     ring.rotation.x = -Math.PI / 2;
     ring.position.y = 0.001;
-    this.scene.add(ring);
+    this.outdoorGroup.add(ring);
 
     // 周邊圍場欄(只在場地邊界)
     const railMat = new THREE.MeshStandardMaterial({ color: 0x8a5a2b, roughness: 0.8 });
@@ -727,16 +731,16 @@ export class WarriorGame {
     ]) {
       const rail = new THREE.Mesh(new THREE.BoxGeometry(horizontal ? len : 0.12, 0.1, horizontal ? 0.12 : len), railMat);
       rail.position.set(sx, 1.05, sz);
-      this.scene.add(rail);
+      this.outdoorGroup.add(rail);
       const railLow = rail.clone();
       railLow.position.y = 0.55;
-      this.scene.add(railLow);
+      this.outdoorGroup.add(railLow);
       const count = 8;
       for (let i = 0; i <= count; i += 1) {
         const t = -len / 2 + (len / count) * i;
         const post = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.25, 0.14), postMat);
         post.position.set(horizontal ? t : sx, 0.62, horizontal ? sz : t);
-        this.scene.add(post);
+        this.outdoorGroup.add(post);
       }
     }
 
@@ -746,13 +750,13 @@ export class WarriorGame {
       for (const cz of [-F, F]) {
         const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 3.2, 8), poleMat);
         pole.position.set(cx, 1.6, cz);
-        this.scene.add(pole);
+        this.outdoorGroup.add(pole);
         const lantern = new THREE.Mesh(
           new THREE.SphereGeometry(0.32, 10, 10),
           new THREE.MeshStandardMaterial({ color: 0xe8503a, roughness: 0.6, emissive: 0x8a2a1a, emissiveIntensity: 0.5 }),
         );
         lantern.position.set(cx, 3.3, cz);
-        this.scene.add(lantern);
+        this.outdoorGroup.add(lantern);
       }
     }
     // 沿邊彩旗
@@ -761,13 +765,13 @@ export class WarriorGame {
       for (const side of [-1, 1]) {
         const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.4, 8), poleMat);
         pole.position.set(side * (F + 1.0), 1.2, z);
-        this.scene.add(pole);
+        this.outdoorGroup.add(pole);
         const pennant = new THREE.Mesh(
           new THREE.PlaneGeometry(0.55, 0.3),
           new THREE.MeshStandardMaterial({ color: i % 2 ? 0xf6d743 : (side < 0 ? 0xb03030 : 0x2f5f9a), roughness: 0.85, side: THREE.DoubleSide }),
         );
         pennant.position.set(side * (F + 1.0) + 0.3, 2.25, z);
-        this.scene.add(pennant);
+        this.outdoorGroup.add(pennant);
       }
     }
 
@@ -777,7 +781,7 @@ export class WarriorGame {
     for (const side of [-1, 1]) {
       const stand = new THREE.Mesh(new THREE.BoxGeometry(4, 2.8, 42), standMat);
       stand.position.set(side * (F + 5.0), 1.4, 0);
-      this.scene.add(stand);
+      this.outdoorGroup.add(stand);
       const shirts = [0xd98a3d, 0x3d78d9, 0xc94f8f, 0x4fae6a, 0xb0552f, 0x8a5ac0];
       for (let i = 0; i < 6; i += 1) {
         const p = makePerson({
@@ -805,9 +809,56 @@ export class WarriorGame {
     this.scene.add(this.hitFlash);
     this.hitFlashT = 9;
 
+    // ---------- 室內武鬥場(07-18):木地板+背側牆+紅柱+燈籠,預設隱藏 ----------
+    const dojo = new THREE.Group();
+    this.indoorGroup = dojo;
+    const wood = new THREE.Mesh(new THREE.PlaneGeometry(70, 70), new THREE.MeshStandardMaterial({ color: 0xa87848, roughness: 0.6 }));
+    wood.rotation.x = -Math.PI / 2;
+    wood.position.y = 0.002;
+    dojo.add(wood);
+    for (let i = 0; i < 9; i += 1) { // 木板縫
+      const seam = new THREE.Mesh(new THREE.PlaneGeometry(70, 0.06), new THREE.MeshStandardMaterial({ color: 0x8a5f38, roughness: 0.8 }));
+      seam.rotation.x = -Math.PI / 2;
+      seam.position.set(0, 0.004, -28 + i * 7);
+      dojo.add(seam);
+    }
+    const dojoRing = new THREE.Mesh(new THREE.RingGeometry(3.6, 3.9, 48), new THREE.MeshBasicMaterial({ color: 0xf2e8d8, side: THREE.DoubleSide }));
+    dojoRing.rotation.x = -Math.PI / 2;
+    dojoRing.position.y = 0.006;
+    dojo.add(dojoRing);
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x2c1f2e, roughness: 1 });
+    const backWall = new THREE.Mesh(new THREE.BoxGeometry(56, 8, 0.4), wallMat);
+    backWall.position.set(0, 4, -14);
+    dojo.add(backWall);
+    for (const sx of [-1, 1]) {
+      const sideWall = new THREE.Mesh(new THREE.BoxGeometry(0.4, 8, 36), wallMat);
+      sideWall.position.set(sx * 26, 4, 3);
+      dojo.add(sideWall);
+    }
+    const pillarMat = new THREE.MeshStandardMaterial({ color: 0x9c2f2f, roughness: 0.7 });
+    for (const px of [-18, -9, 0, 9, 18]) {
+      const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.3, 8, 12), pillarMat);
+      pillar.position.set(px, 4, -13.5);
+      dojo.add(pillar);
+    }
+    for (const lx of [-13.5, -4.5, 4.5, 13.5]) { // 背牆燈籠列
+      const lan = new THREE.Mesh(new THREE.SphereGeometry(0.4, 12, 12), new THREE.MeshStandardMaterial({ color: 0xe84b3a, roughness: 0.5, emissive: 0xa03020, emissiveIntensity: 0.8 }));
+      lan.position.set(lx, 5.6, -13.2);
+      dojo.add(lan);
+      const tassel = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.06, 0.36, 8), new THREE.MeshStandardMaterial({ color: 0xe8c95a }));
+      tassel.position.set(lx, 5.1, -13.2);
+      dojo.add(tassel);
+    }
+    dojo.visible = false;
+    this.scene.add(dojo);
+
     // ---------- 天氣氛圍(race-stage-kit ④:純視覺不影響比賽鐵則) ----------
     // 日夜循環+夜間極光+飄雪陣風;競技場小,極光環半徑 70-105 > 場地 25 即安全
     this.buildWeather();
+
+    let savedScene = "field";
+    try { savedScene = localStorage.getItem("streetbrawl3d-scene") || "field"; } catch { /* ignore */ }
+    this.setScene(savedScene);
 
     this.resetFighters();
   }
@@ -1177,13 +1228,35 @@ export class WarriorGame {
   }
 
   // ---------- 局面控制 ----------
-  applyPresentation({ difficulty, modeId, outfit, weaponId, character }) {
+  // 場景切換(07-18 使用者拍板,brawl-2p5d-kit §6 統一規格):
+  // field=室外草地(原生,日夜極光飄雪)/dojo=武鬥場室內(靜態暖光,天氣不跑)
+  setScene(sceneId) {
+    const id = sceneId === "dojo" ? "dojo" : "field";
+    this.sceneId = id;
+    const indoor = id === "dojo";
+    if (this.outdoorGroup) this.outdoorGroup.visible = !indoor;
+    if (this.indoorGroup) this.indoorGroup.visible = indoor;
+    if (this.aurora) this.aurora.group.visible = this.aurora.group.visible && !indoor;
+    if (this.snowFx) this.snowFx.pts.visible = !indoor && this.snowFx.pts.visible;
+    if (indoor) {
+      this.scene.background = new THREE.Color(0x241a26); // 武館夜色
+      if (this.scene.fog) { this.scene.fog.near = 60; this.scene.fog.far = 200; this.scene.fog.color.setHex(0x241a26); }
+      if (this.keyLight) { this.keyLight.color.setHex(0xffd9a8); this.keyLight.intensity = 1.6; }
+    } else {
+      if (this.keyLight) { this.keyLight.color.setHex(0xfff2d4); this.keyLight.intensity = 1.9; }
+      // 室外的天空/霧由 updateWeather 下一幀接手
+    }
+    try { localStorage.setItem("streetbrawl3d-scene", id); } catch { /* ignore */ }
+  }
+
+  applyPresentation({ difficulty, modeId, outfit, weaponId, character, scene }) {
     if (difficulty && DIFFICULTY_PRESETS[difficulty]) this.difficulty = difficulty;
     if (modeId && GAME_MODES[modeId]) {
       this.modeId = modeId;
       this.mode = getModeConfig(modeId);
     }
     if (character && CHARACTERS[character]) this.setCharacter(character);
+    if (scene) this.setScene(scene);
     if (outfit && OUTFIT_COLORS[outfit]) this.setOutfit(outfit);
     if (weaponId && WEAPONS[weaponId]) {
       this.weaponId = weaponId;
@@ -1688,6 +1761,7 @@ export class WarriorGame {
 
   updateWeather(delta) {
     if (this._tsGray) return; // THE WORLD 時停中:天空/極光也凍結(不然日夜 lerp 每幀蓋掉世界抽色)
+    if (this.sceneId === "dojo") return; // 室內武鬥場:天氣完全不跑(靜態暖光省效能)
     // 日夜天色(race-stage-kit ③;夜=深藍 0x0a2050)
     const KEYS = [
       [0, 0x0a2050, 0.35], [5, 0x0a2050, 0.35], [6.5, 0xf0955f, 1.1],

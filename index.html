@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-    <title>2.5D 街頭快打 Street Brawl</title>
+    <title>2.5D 街頭快打・八般武器 Street Brawl</title>
   </head>
   <body>
     <div class="app-shell">
@@ -52,7 +52,7 @@
       <aside class="side-panel">
         <div class="panel-block hero-panel">
           <p class="eyebrow">Street Brawl 2.5D · 德義武鬥館</p>
-          <h1>2.5D 街頭快打</h1>
+          <h1>2.5D 街頭快打・八般武器</h1>
           <p class="panel-copy">
             側視擂台對決——不用控方向,自動面向對手!←→ 拉開距離或貼身,八般武器隨換,G 放替身技能,打光血條獲勝。鈍頭無流血,敗方溫柔跪地,以武會友!
           </p>
@@ -225,6 +225,12 @@
                 <option value="rapier">西洋劍——最快的點刺</option>
                 <option value="bow">弓箭——遠距狙擊(鈍頭箭)</option>
                 <option value="greenballs">雙綠鋼球——兩顆連投,命中暈眩</option>
+              </select>
+
+              <label class="field-label" for="sceneSelect">場景(室外有日夜與極光)</label>
+              <select id="sceneSelect">
+                <option value="field">室外草地(日夜+極光+飄雪)</option>
+                <option value="dojo">武鬥場(室內)</option>
               </select>
 
               <label class="field-label" for="outfitSelect">戰袍顏色</label>

@@ -49,6 +49,7 @@ const ui = {
   bigPowerLabel: document.querySelector("#bigPowerLabel"),
   weaponBar: document.querySelector("#weaponBar"),
   audioSelect: document.querySelector("#audioSelect"),
+  sceneSelect: document.querySelector("#sceneSelect"),
   modeMetaTitle: document.querySelector("#modeMetaTitle"),
   modeMetaGoal: document.querySelector("#modeMetaGoal"),
   startMatchButton: document.querySelector("#startMatchButton"),
@@ -72,6 +73,7 @@ let selectedDifficulty = game.difficulty;
 let selectedOutfit = game.outfitId;
 let selectedWeapon = game.weaponId;
 let selectedCharacter = game.characterId;
+let selectedScene = (() => { try { return localStorage.getItem("streetbrawl3d-scene") || "field"; } catch { return "field"; } })();
 let audioEnabled = settings.audioEnabled !== false;
 
 function persistSettings() {
@@ -383,6 +385,14 @@ ui.weaponBar.addEventListener("click", (event) => {
   game.setPlayerWeapon(chip.dataset.weapon);
 });
 
+ui.sceneSelect.value = selectedScene;
+ui.sceneSelect.addEventListener("change", (event) => {
+  unlockAudio();
+  audio.uiTap();
+  selectedScene = event.target.value === "dojo" ? "dojo" : "field";
+  game.setScene(selectedScene); // 即時生效,選單背景就看得到
+});
+
 ui.audioSelect.addEventListener("change", (event) => {
   unlockAudio();
   audio.uiTap();
@@ -398,6 +408,7 @@ ui.startMatchButton.addEventListener("click", () => {
     horseCoat: selectedOutfit,
     weaponId: selectedWeapon,
     character: selectedCharacter,
+    scene: selectedScene,
   });
   game.startSelectedMatch();
   closeHomeScreen();
